@@ -1,5 +1,20 @@
 {
+  "name": "proyecto-entregas-domicilio",
+  "version": "1.0.0",
+  "description": "CRUD de Entregas a Domicilio (Node.js + Express)",
+  "type": "module",
+  "main": "src/rutas/index.js",
+  "scripts": {
+    "start": "node src/rutas/index.js",
+    "dev": "node --watch src//rutas/index.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
   "dependencies": {
-    "mongoose": "^9.13.1"
+    "express": "^5.1.0",
+    "mongoose": "^9.12.2",
+    "multer": "^2.5.0",
+    "pdfkit": "^0.21.0"
   }
 }
