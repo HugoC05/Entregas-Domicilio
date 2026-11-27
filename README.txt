@@ -206,3 +206,76 @@ Los errores se devuelven siempre con este formato:
   "error": "Ya existe un cliente con ese correo"
 }
 ```
+
+## Imágenes
+
+Cada cliente, repartidor y pedido puede tener una imagen (PNG o JPG, máximo 2 MB). Se guarda en MongoDB junto al registro.
+
+| Método | Ruta | Descripción |
+|---|---|---|
+| PUT | `/api/clientes/:id/imagen` | Sube la imagen del cliente |
+| PUT | `/api/repartidores/:id/imagen` | Sube la imagen del repartidor |
+| PUT | `/api/pedidos/:id/imagen` | Sube la imagen del pedido |
+| GET | `/api/clientes/:id/imagen` | Devuelve la imagen del cliente |
+| GET | `/api/repartidores/:id/imagen` | Devuelve la imagen del repartidor |
+| GET | `/api/pedidos/:id/imagen` | Devuelve la imagen del pedido |
+
+Para subirla en Postman: método `PUT`, Body → form-data, clave `imagen` de tipo **File** y el archivo elegido.
+
+Reglas:
+
+- Solo se aceptan PNG y JPG. Se revisa el contenido real del archivo, no la extensión.
+- Si pesa más de 2 MB o no se envía archivo, responde `400`.
+- Si el registro no existe o no tiene imagen, responde `404`.
+- Cuando un registro tiene imagen, su JSON incluye `"imagen": "/api/<recurso>/<id>/imagen"`. Si no, `"imagen": null`.
+
+## Reporte en PDF
+
+```
+GET /api/pedidos/:id/reporte
+```
+
+Genera un PDF del pedido con tres secciones: **Pedido**, **Cliente** y **Repartidor**, cada una con sus datos y su imagen. Si falta una imagen aparece "Sin imagen", y si el pedido no tiene repartidor lo indica. El PDF se genera en el momento y no se guarda en disco.
+
+- Se abre directo en el navegador: `http://localhost:3001/api/pedidos/1/reporte`
+- En Postman usa **Send and Download**.
+- Si el pedido no existe responde `404`.
+
+## Pruebas
+
+### Postman
+
+La colección está en `postman/`. Para usarla:
+
+1. En Postman pulsa **Import** y elige el archivo `.json`.
+2. Con la API corriendo, ejecútala con **Run collection**, en el orden de las carpetas: cada petición guarda los ids que usa la siguiente.
+3. La variable `baseUrl` de la colección apunta a `http://localhost:3001/api`. Cámbiala si la API está desplegada en otra URL.
+4. En las peticiones de subir imagen hay que elegir un archivo antes de enviarlas.
+
+### K6 (carga)
+
+El script está en `k6/prueba.js`. Simula 5 usuarios durante 20 segundos: lista datos, crea un cliente y un pedido, descarga el reporte PDF, y elimina lo que creó.
+
+Con la API corriendo, desde la raíz del proyecto:
+
+```
+docker run --rm -i -e BASE_URL=http://host.docker.internal:3001/api/ -v "${PWD}:/app" -w /app grafana/k6 run k6/prueba.js
+```
+
+Al terminar se genera `index.html` con el reporte. La prueba falla si más del 1% de las peticiones da error o si el 95% de las respuestas tarda más de 2 segundos.
+
+## Estructura actual
+
+```
+k6/
+  prueba.js
+postman/
+  <colección de Postman>.json
+src/
+  baseDeDatos/     modelos de Mongoose, conexión y contador de ids
+  controladores/   reciben la petición y responden
+  dtos/            validan la entrada y dan forma a la salida
+  errores/         errores personalizados y manejador central
+  rutas/           index.js: rutas y arranque del servidor
+  servicios/       reglas de negocio y reporte PDF
+```
